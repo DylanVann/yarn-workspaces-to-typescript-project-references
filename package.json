@@ -1,0 +1,40 @@
+{
+  "name": "yarn-workspaces-to-typescript-project-references",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "Dylan Vann",
+  "type": "module",
+  "bin": "bin.js",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsdx lint src",
+    "start": "tsc --watch",
+    "test": "tsdx test"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "dependencies": {
+    "execa": "^4.0.1",
+    "fs-extra": "^9.0.0",
+    "lodash.mapvalues": "^4.6.0",
+    "pkg-dir": "^4.2.0",
+    "yargs": "^15.3.1"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.0",
+    "@types/lodash.mapvalues": "^4.6.6",
+    "tsdx": "^0.13.2",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.2"
+  },
+  "engines": {
+    "node": ">=10"
+  }
+}
