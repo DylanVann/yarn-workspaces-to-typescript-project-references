@@ -13,11 +13,11 @@ yarn add -D yarn-workspaces-to-typescript-project-references
 **Check that references are synced with dependencies:**
 
 ```
-yan-workspaces-to-typescript-project-references --check
+yarn yarn-workspaces-to-typescript-project-references --check
 ```
 
 **Sync references with dependencies:**
 
 ```
-yan-workspaces-to-typescript-project-references --write
+yarn yarn-workspaces-to-typescript-project-references --write
 ```
