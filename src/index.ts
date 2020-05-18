@@ -3,6 +3,7 @@ import fs from 'fs-extra'
 import execa from 'execa'
 import pkgDir from 'pkg-dir'
 import path from 'path'
+import isEqual from 'lodash.isequal'
 
 interface WorkSpaceInfo {
   [key: string]: {
@@ -11,7 +12,7 @@ interface WorkSpaceInfo {
   }
 }
 
-const run = async () => {
+const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   const root = await pkgDir(process.cwd())
   if (!root) {
     throw new Error('Could not find workspace root.')
@@ -54,8 +55,20 @@ const run = async () => {
         .filter(notUndefined)
         .map(v => path.relative(location, v))
       const tsConfig = await fs.readJSON(tsConfigPath)
-      tsConfig.references = expectedReferences.map(path => ({ path }))
-      await fs.writeJSON(tsConfigPath, tsConfig)
+      const references = expectedReferences.map(path => ({ path }))
+
+      if (mode === 'write') {
+        tsConfig.references = references
+        await fs.writeJSON(tsConfigPath, tsConfig)
+      }
+
+      if (mode === 'check') {
+        if (!isEqual(references, tsConfig.references)) {
+          throw new Error(
+            'Project references are not in sync with dependencies.',
+          )
+        }
+      }
     }
   }
 
@@ -67,18 +80,18 @@ const run = async () => {
 yargs
   .command(
     'check',
-    'Check the tsconfig files are synced with dependencies.',
+    'Check that the tsconfig file project references are synced with dependencies.',
     v => v,
     async () => {
-      await run()
+      await run({ mode: 'check' })
     },
   )
   .command(
     'write',
-    'Write the dependencies to tsconfig files.',
+    'Write the dependencies to tsconfig file project references.',
     v => v,
     async () => {
-      await run()
+      await run({ mode: 'write' })
     },
   )
   .help()
