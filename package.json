@@ -6,8 +6,7 @@
   "type": "module",
   "bin": "bin.js",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
