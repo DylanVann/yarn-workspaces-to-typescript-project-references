@@ -90,19 +90,19 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     return {}
   }
 
-  const idk: any[] = []
+  const infoAboutPackages: any[] = []
   for (const name of packageNames) {
     const i = await processPackage(name)
-    idk.push(i)
+    infoAboutPackages.push(i)
   }
 
   if (mode === 'check') {
-    if (idk.some((v) => v.wasOutOfSync)) {
+    if (infoAboutPackages.some((v) => v.wasOutOfSync)) {
       console.error('Project references are not in sync with dependencies.')
       process.exit(0)
     }
   } else {
-    if (idk.some((v) => v.wasOutOfSync)) {
+    if (infoAboutPackages.some((v) => v.wasOutOfSync)) {
       console.log('Project references were synced with dependencies.')
       process.exit(0)
     } else {
