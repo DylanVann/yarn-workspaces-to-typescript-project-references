@@ -105,11 +105,6 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     .filter(isNotUndefined)
     .map((v) => path.relative(root, v))
 
-  const rootTSConfigTarget = {
-    files: [],
-    references: roots.map((v) => ({ path: v })),
-  }
-
   const infoAboutPackages: any[] = []
   await Promise.all(
     packageNames.map(async (name) => {
@@ -118,6 +113,20 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     }),
   )
 
+  const rootTSConfigTarget = {
+    files: [],
+    references: roots.map((v) => ({ path: v })),
+  }
+  const rootTSConfigPrettierOptions = await prettier.resolveConfig(
+    rootTSConfigPath,
+  )
+  const rootTSConfigFormatted = prettier.format(
+    JSON.stringify(rootTSConfigTarget),
+    {
+      ...rootTSConfigPrettierOptions,
+      parser: 'json',
+    },
+  )
   const rootTSConfig = await fs.readJSON(rootTSConfigPath, { encoding: 'utf8' })
   const rootIsSynced = isEqual(rootTSConfig, rootTSConfigTarget)
 
@@ -128,7 +137,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     }
   } else {
     if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
-      await fs.writeJSON(rootTSConfigPath, rootTSConfigTarget)
+      await fs.writeFile(rootTSConfigPath, rootTSConfigFormatted)
       console.log('Project references were synced with dependencies.')
       process.exit(0)
     } else {
