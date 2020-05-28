@@ -92,7 +92,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
         tsConfigPath,
       )
 
-      const tsConfigMatchesTarget = tsConfigString !== tsConfigTargetString
+      const tsConfigMatchesTarget = tsConfigString === tsConfigTargetString
 
       if (mode === 'write') {
         if (!tsConfigMatchesTarget) {
