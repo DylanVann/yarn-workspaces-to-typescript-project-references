@@ -18,6 +18,18 @@ function isNotUndefined<T>(x: T | undefined): x is T {
   return x !== undefined
 }
 
+const stringifyTSConfig = async (
+  tsConfig: any,
+  path: string,
+): Promise<string> => {
+  const text = stringify(tsConfig, { space: 2 })
+  const prettierOptions = await prettier.resolveConfig(path)
+  return prettier.format(text, {
+    ...prettierOptions,
+    parser: 'json',
+  })
+}
+
 const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   const root = await pkgDir(process.cwd())
   if (!root) {
@@ -64,23 +76,28 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     const tsConfigPath = nameToConfigPath[name]
     if (tsConfigPath) {
       const location = path.join(root, info.location)
-      const expectedReferences = info.workspaceDependencies
-        .map((v) => nameToConfigPath[v])
-        .filter(isNotUndefined)
-        .map((v) => path.relative(location, v))
-      const tsConfig = await fs.readJSON(tsConfigPath)
-      const references = expectedReferences.map((path) => ({ path }))
+      const tsConfigString = await fs.readFile(tsConfigPath, {
+        encoding: 'utf8',
+      })
+      const tsConfig = JSON.parse(tsConfigString)
+      const tsConfigTarget = {
+        ...tsConfig,
+        references: info.workspaceDependencies
+          .map((v) => nameToConfigPath[v])
+          .filter(isNotUndefined)
+          .map((v) => path.relative(location, v))
+          .map((v) => ({ path: v })),
+      }
+      const tsConfigTargetString = await stringifyTSConfig(
+        tsConfigTarget,
+        tsConfigPath,
+      )
+
+      const tsConfigMatchesTarget = tsConfigString !== tsConfigTargetString
 
       if (mode === 'write') {
-        if (!isEqual(references, tsConfig.references)) {
-          tsConfig.references = references
-          const text = stringify(tsConfig, { space: 2 })
-          const prettierOptions = await prettier.resolveConfig(tsConfigPath)
-          const formatted = prettier.format(text, {
-            ...prettierOptions,
-            parser: 'json',
-          })
-          await fs.writeFile(tsConfigPath, formatted)
+        if (!tsConfigMatchesTarget) {
+          await fs.writeFile(tsConfigPath, tsConfigTargetString)
           return { wasOutOfSync: true, wasWritten: true }
         } else {
           return { wasOutOfSync: false, wasWritten: false }
@@ -88,7 +105,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       }
 
       if (mode === 'check') {
-        if (!isEqual(references, tsConfig.references)) {
+        if (!tsConfigMatchesTarget) {
           return { wasOutOfSync: true, wasWritten: false }
         } else {
           return { wasOutOfSync: false, wasWritten: false }
@@ -100,11 +117,6 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     return {}
   }
 
-  const roots = idk
-    .map((v) => v.tsConfigPath)
-    .filter(isNotUndefined)
-    .map((v) => path.relative(root, v))
-
   const infoAboutPackages: any[] = []
   await Promise.all(
     packageNames.map(async (name) => {
@@ -113,31 +125,39 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     }),
   )
 
+  const rootTSConfigString = await fs.readFile(rootTSConfigPath, {
+    encoding: 'utf8',
+  })
   const rootTSConfigTarget = {
     files: [],
-    references: roots.map((v) => ({ path: v })),
+    references: idk
+      .map((v) => v.tsConfigPath)
+      .filter(isNotUndefined)
+      .map((v) => path.relative(root, v))
+      .map((v) => ({ path: v })),
   }
-  const rootTSConfigPrettierOptions = await prettier.resolveConfig(
+  const rootTSConfigTargetString = await stringifyTSConfig(
+    rootTSConfigTarget,
     rootTSConfigPath,
   )
-  const rootTSConfigFormatted = prettier.format(
-    JSON.stringify(rootTSConfigTarget),
-    {
-      ...rootTSConfigPrettierOptions,
-      parser: 'json',
-    },
-  )
-  const rootTSConfig = await fs.readJSON(rootTSConfigPath, { encoding: 'utf8' })
-  const rootIsSynced = isEqual(rootTSConfig, rootTSConfigTarget)
+
+  const rootTSConfigMatchesTarget =
+    rootTSConfigString === rootTSConfigTargetString
 
   if (mode === 'check') {
-    if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
+    if (
+      infoAboutPackages.some((v) => v.wasOutOfSync) ||
+      !rootTSConfigMatchesTarget
+    ) {
       console.error('Project references are not in sync with dependencies.')
       process.exit(1)
     }
   } else {
-    if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
-      await fs.writeFile(rootTSConfigPath, rootTSConfigFormatted)
+    if (
+      infoAboutPackages.some((v) => v.wasOutOfSync) ||
+      !rootTSConfigMatchesTarget
+    ) {
+      await fs.writeFile(rootTSConfigPath, rootTSConfigTargetString)
       console.log('Project references were synced with dependencies.')
       process.exit(0)
     } else {
