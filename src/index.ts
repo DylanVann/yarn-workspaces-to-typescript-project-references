@@ -14,11 +14,16 @@ interface WorkSpaceInfo {
   }
 }
 
+function isNotUndefined<T>(x: T | undefined): x is T {
+  return x !== undefined
+}
+
 const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   const root = await pkgDir(process.cwd())
   if (!root) {
     throw new Error('Could not find workspace root.')
   }
+  const rootTSConfigPath = path.join(root, 'tsconfig.json')
   const { stdout: raw } = await execa('yarn', [
     '--silent',
     'workspaces',
@@ -34,18 +39,20 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     const tsConfigExists = await fs.pathExists(tsConfigPath)
     return {
       tsConfigPath: tsConfigExists ? tsConfigPath : undefined,
+      name,
     }
   }
 
-  const nameToConfigPath: { [name: string]: string | undefined } = {}
-  for (const name of packageNames) {
-    const info = await getPackageInfo(name)
-    nameToConfigPath[name] = info.tsConfigPath
-  }
+  const idk: {
+    tsConfigPath: string | undefined
+    name: string
+  }[] = await Promise.all(
+    packageNames.map(async (name) => getPackageInfo(name)),
+  )
 
-  function notUndefined<T>(x: T | undefined): x is T {
-    return x !== undefined
-  }
+  const nameToConfigPath: {
+    [name: string]: string | undefined
+  } = idk.reduce((acc: any, next) => (acc[next.name] = next.tsConfigPath), {})
 
   const processPackage = async (
     name: string,
@@ -56,7 +63,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       const location = path.join(root, info.location)
       const expectedReferences = info.workspaceDependencies
         .map((v) => nameToConfigPath[v])
-        .filter(notUndefined)
+        .filter(isNotUndefined)
         .map((v) => path.relative(location, v))
       const tsConfig = await fs.readJSON(tsConfigPath)
       const references = expectedReferences.map((path) => ({ path }))
@@ -90,19 +97,35 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     return {}
   }
 
-  const infoAboutPackages: any[] = []
-  for (const name of packageNames) {
-    const i = await processPackage(name)
-    infoAboutPackages.push(i)
+  const roots = idk
+    .map((v) => v.tsConfigPath)
+    .filter(isNotUndefined)
+    .map((v) => path.relative(root, v))
+
+  const rootTSConfigTarget = {
+    files: [],
+    references: roots.map((v) => ({ path: v })),
   }
 
+  const infoAboutPackages: any[] = []
+  await Promise.all(
+    packageNames.map(async (name) => {
+      const i = await processPackage(name)
+      infoAboutPackages.push(i)
+    }),
+  )
+
+  const rootTSConfig = await fs.readJSON(rootTSConfigPath, { encoding: 'utf8' })
+  const rootIsSynced = isEqual(rootTSConfig, rootTSConfigTarget)
+
   if (mode === 'check') {
-    if (infoAboutPackages.some((v) => v.wasOutOfSync)) {
+    if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
       console.error('Project references are not in sync with dependencies.')
       process.exit(0)
     }
   } else {
-    if (infoAboutPackages.some((v) => v.wasOutOfSync)) {
+    if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
+      await fs.writeJSON(rootTSConfigPath, rootTSConfigTarget)
       console.log('Project references were synced with dependencies.')
       process.exit(0)
     } else {
@@ -116,7 +139,7 @@ yargs
   .command(
     'check',
     'Check that the tsconfig file project references are synced with dependencies.',
-    (v) => v,
+    (v: any) => v,
     async () => {
       await run({ mode: 'check' })
     },
@@ -124,7 +147,7 @@ yargs
   .command(
     'write',
     'Write the dependencies to tsconfig file project references.',
-    (v) => v,
+    (v: any) => v,
     async () => {
       await run({ mode: 'write' })
     },
