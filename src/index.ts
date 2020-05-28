@@ -52,7 +52,10 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
 
   const nameToConfigPath: {
     [name: string]: string | undefined
-  } = idk.reduce((acc: any, next) => (acc[next.name] = next.tsConfigPath), {})
+  } = idk.reduce(
+    (acc: any, next) => ({ ...acc, [next.name]: next.tsConfigPath }),
+    {},
+  )
 
   const processPackage = async (
     name: string,
