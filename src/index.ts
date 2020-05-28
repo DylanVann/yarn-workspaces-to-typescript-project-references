@@ -3,7 +3,6 @@ import fs from 'fs-extra'
 import execa from 'execa'
 import pkgDir from 'pkg-dir'
 import path from 'path'
-import isEqual from 'lodash.isequal'
 import prettier from 'prettier'
 import stringify from 'json-stable-stringify'
 
