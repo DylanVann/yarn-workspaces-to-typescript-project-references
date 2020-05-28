@@ -1,6 +1,6 @@
 {
   "name": "yarn-workspaces-to-typescript-project-references",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "license": "MIT",
   "author": "Dylan Vann",
   "main": "dist/index.js",
