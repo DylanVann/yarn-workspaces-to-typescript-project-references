@@ -124,7 +124,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   if (mode === 'check') {
     if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
       console.error('Project references are not in sync with dependencies.')
-      process.exit(0)
+      process.exit(1)
     }
   } else {
     if (infoAboutPackages.some((v) => v.wasOutOfSync) || !rootIsSynced) {
