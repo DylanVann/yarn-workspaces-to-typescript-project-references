@@ -148,7 +148,9 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       infoAboutPackages.some((v) => v.wasOutOfSync) ||
       !rootTSConfigMatchesTarget
     ) {
-      console.error('Project references are not in sync with dependencies.')
+      console.error(
+        'Project references are not in sync with dependencies.\nYou can run "yarn yarn-workspaces-to-typescript-project-references write" to fix them.',
+      )
       process.exit(1)
     }
   } else {
