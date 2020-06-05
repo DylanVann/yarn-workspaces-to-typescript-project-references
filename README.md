@@ -6,12 +6,12 @@ Sync [Yarn workspaces](https://classic.yarnpkg.com/en/docs/workspaces/) dependen
 
 This project may be deprecated when this is resolved: https://github.com/microsoft/TypeScript/issues/25376
 
-**Features:**
+**Features/Roadmap:**
 
 - [x] `check` project references, to be run on CI.
 - [x] `write` project references, to be run locally to update them.
-- [ ] Detect `test.tsconfig.json` files in packages and correct references.
-- [ ] Write `tsconfig.json` solutions file to the repo root.
+- [x] Writes `tsconfig.json` solutions file to the repo root.
+- [ ] Detects `test.tsconfig.json` files in packages and correct references.
 
 ## Usage
 
