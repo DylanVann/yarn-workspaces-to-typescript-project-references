@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "execa": "^4.0.2",
-    "fs-extra": "^9.0.0",
+    "fs-extra": "^9.0.1",
     "json-stable-stringify": "^1.0.1",
     "lodash.mapvalues": "^4.6.0",
     "pkg-dir": "^4.2.0",
@@ -42,8 +42,8 @@
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash.mapvalues": "^4.6.6",
     "@types/prettier": "^2.0.0",
-    "dv-scripts": "^1.0.6",
+    "dv-scripts": "^1.0.7",
     "tslib": "^2.0.0",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.5"
   }
 }
