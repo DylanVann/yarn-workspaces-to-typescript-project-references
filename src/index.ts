@@ -78,7 +78,15 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       const tsConfigString = await fs.readFile(tsConfigPath, {
         encoding: 'utf8',
       })
-      const tsConfig = JSON.parse(tsConfigString)
+      let tsConfig
+      try {
+        tsConfig = JSON.parse(tsConfigString)
+      } catch (e) {
+        console.log(
+          `Unable to parse TypeScript configuration file at path ${tsConfigPath} in package ${name}`,
+        )
+        throw e
+      }
       const tsConfigTarget = {
         ...tsConfig,
         references: info.workspaceDependencies
