@@ -1,10 +1,6 @@
 {
   "name": "yarn-workspaces-to-typescript-project-references",
   "version": "2.1.8",
-  "license": "MIT",
-  "author": "Dylan Vann",
-  "main": "dist/index.js",
-  "bin": "bin.js",
   "homepage": "https://github.com/DylanVann/yarn-workspaces-to-typescript-project-references#readme",
   "bugs": {
     "url": "https://github.com/DylanVann/yarn-workspaces-to-typescript-project-references/issues"
@@ -13,6 +9,10 @@
     "type": "git",
     "url": "git+https://github.com/DylanVann/yarn-workspaces-to-typescript-project-references.git"
   },
+  "license": "MIT",
+  "author": "Dylan Vann",
+  "main": "dist/index.js",
+  "bin": "bin.js",
   "files": [
     "dist",
     "bin.js"
