@@ -1,6 +1,6 @@
 {
   "name": "yarn-workspaces-to-typescript-project-references",
-  "version": "2.1.8",
+  "version": "2.1.9",
   "homepage": "https://github.com/DylanVann/yarn-workspaces-to-typescript-project-references#readme",
   "bugs": {
     "url": "https://github.com/DylanVann/yarn-workspaces-to-typescript-project-references/issues"
