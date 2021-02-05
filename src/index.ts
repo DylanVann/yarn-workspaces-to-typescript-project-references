@@ -6,6 +6,8 @@ import path from 'path'
 import prettier from 'prettier'
 import stringify from 'json-stable-stringify'
 
+const posixPath = path.posix
+
 interface WorkSpaceInfo {
   [key: string]: {
     location: string
@@ -19,10 +21,10 @@ function isNotUndefined<T>(x: T | undefined): x is T {
 
 const stringifyTSConfig = async (
   tsConfig: any,
-  path: string,
+  pathToFile: string,
 ): Promise<string> => {
   const text = stringify(tsConfig, { space: 2 })
-  const prettierOptions = await prettier.resolveConfig(path)
+  const prettierOptions = await prettier.resolveConfig(pathToFile)
   return prettier.format(text, {
     ...prettierOptions,
     parser: 'json',
@@ -34,7 +36,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   if (!root) {
     throw new Error('Could not find workspace root.')
   }
-  const rootTSConfigPath = path.join(root, 'tsconfig.json')
+  const rootTSConfigPath = posixPath.join(root, 'tsconfig.json')
   const { stdout: raw } = await execa('yarn', [
     '--silent',
     'workspaces',
@@ -46,7 +48,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
 
   const getPackageInfo = async (name: string) => {
     const info = workspaceInfo[name]
-    const tsConfigPath = path.join(root, info.location, 'tsconfig.json')
+    const tsConfigPath = posixPath.join(root, info.location, 'tsconfig.json')
     const tsConfigExists = await fs.pathExists(tsConfigPath)
     return {
       tsConfigPath: tsConfigExists ? tsConfigPath : undefined,
@@ -74,7 +76,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     const info = workspaceInfo[name]
     const tsConfigPath = nameToConfigPath[name]
     if (tsConfigPath) {
-      const location = path.join(root, info.location)
+      const location = posixPath.join(root, info.location)
       const tsConfigString = await fs.readFile(tsConfigPath, {
         encoding: 'utf8',
       })
@@ -84,7 +86,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
         references: info.workspaceDependencies
           .map((v) => nameToConfigPath[v])
           .filter(isNotUndefined)
-          .map((v) => path.relative(location, v))
+          .map((v) => posixPath.relative(location, v))
           .map((v) => ({ path: v })),
       }
       const tsConfigTargetString = await stringifyTSConfig(
@@ -132,7 +134,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     references: idk
       .map((v) => v.tsConfigPath)
       .filter(isNotUndefined)
-      .map((v) => path.relative(root, v))
+      .map((v) => posixPath.relative(root, v))
       .map((v) => ({ path: v })),
   }
   const rootTSConfigTargetString = await stringifyTSConfig(
