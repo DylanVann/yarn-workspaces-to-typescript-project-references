@@ -127,7 +127,9 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   const rootTSConfigString = await fs.readFile(rootTSConfigPath, {
     encoding: 'utf8',
   })
+  const rootTSConfig = JSON.parse(rootTSConfigString)
   const rootTSConfigTarget = {
+    ...rootTSConfig,
     files: [],
     references: idk
       .map((v) => v.tsConfigPath)
