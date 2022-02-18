@@ -127,7 +127,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   await Promise.all(
     packageNames.map(async (name) => {
       const i = await processPackage(name)
-      infoAboutPackages.push(i)
+      infoAboutPackages.push({name, ...i})
     }),
   )
 
@@ -151,12 +151,10 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     rootTSConfigString === rootTSConfigTargetString
 
   if (mode === 'check') {
-    if (
-      infoAboutPackages.some((v) => v.wasOutOfSync) ||
-      !rootTSConfigMatchesTarget
-    ) {
+    const outOfSyncPackages = infoAboutPackages.filter((v) => v.wasOutOfSync);
+    if (outOfSyncPackages.length || !rootTSConfigMatchesTarget) {
       console.error(
-        'Project references are not in sync with dependencies.\nYou can run "yarn yarn-workspaces-to-typescript-project-references write" to fix them.',
+        `Project references are not in sync with dependencies:\n${outOfSyncPackages.map(pkg => `\t* ${pkg.name}`).join('\n')}\nYou can run "yarn yarn-workspaces-to-typescript-project-references write" to fix them.`,
       )
       process.exit(1)
     }
