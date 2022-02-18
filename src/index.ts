@@ -5,6 +5,7 @@ import pkgDir from 'pkg-dir'
 import path from 'path'
 import prettier from 'prettier'
 import stringify from 'json-stable-stringify'
+import {parse as jsonParse} from 'jsonc-parser';
 
 interface WorkSpaceInfo {
   [key: string]: {
@@ -78,7 +79,13 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       const tsConfigString = await fs.readFile(tsConfigPath, {
         encoding: 'utf8',
       })
-      const tsConfig = JSON.parse(tsConfigString)
+      let tsConfig;
+      try {
+        tsConfig = jsonParse(tsConfigString)
+      } catch (e) {
+        console.log('Could not parse tsconfig file:', tsConfigPath);
+        throw e;
+      }
       const tsConfigTarget = {
         ...tsConfig,
         references: info.workspaceDependencies
