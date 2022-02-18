@@ -7,6 +7,31 @@ import prettier from 'prettier'
 import stringify from 'json-stable-stringify'
 import {parse as jsonParse} from 'jsonc-parser';
 
+const argv = yargs
+  .option('dirPrefix', {
+    alias: 'd',
+    description: 'If specified, this tool will only look at packages under this directory prefix path.',
+    type: 'string'
+  })
+  .command(
+    'check',
+    'Check that the tsconfig file project references are synced with dependencies.',
+    (v: any) => v,
+    async () => {
+      await run({ mode: 'check' })
+    },
+  )
+  .command(
+    'write',
+    'Write the dependencies to tsconfig file project references.',
+    (v: any) => v,
+    async () => {
+      await run({ mode: 'write' })
+    },
+  )
+  .parse()
+
+
 interface WorkSpaceInfo {
   [key: string]: {
     location: string
@@ -30,7 +55,7 @@ const stringifyTSConfig = async (
   })
 }
 
-const run = async ({ mode }: { mode: 'check' | 'write' }) => {
+async function run({ mode }: { mode: 'check' | 'write' }) {
   const root = await pkgDir(process.cwd())
   if (!root) {
     throw new Error('Could not find workspace root.')
@@ -43,7 +68,9 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     '--json',
   ])
   const workspaceInfo: WorkSpaceInfo = JSON.parse(raw)
-  const packageNames = Object.keys(workspaceInfo)
+  const packageNames = Object.entries(workspaceInfo)
+    .filter(([_, packageInfo]) => !argv.dirPrefix || packageInfo.location.startsWith(argv.dirPrefix))
+    .map(([packageName]) => packageName);
 
   const getPackageInfo = async (name: string) => {
     const info = workspaceInfo[name]
@@ -172,22 +199,3 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     }
   }
 }
-
-yargs
-  .command(
-    'check',
-    'Check that the tsconfig file project references are synced with dependencies.',
-    (v: any) => v,
-    async () => {
-      await run({ mode: 'check' })
-    },
-  )
-  .command(
-    'write',
-    'Write the dependencies to tsconfig file project references.',
-    (v: any) => v,
-    async () => {
-      await run({ mode: 'write' })
-    },
-  )
-  .parse()
