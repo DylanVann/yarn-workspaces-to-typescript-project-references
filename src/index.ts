@@ -5,6 +5,32 @@ import pkgDir from 'pkg-dir'
 import path from 'path'
 import prettier from 'prettier'
 import stringify from 'json-stable-stringify'
+import {parse as jsonParse} from 'jsonc-parser';
+
+const argv = yargs
+  .option('dirPrefix', {
+    alias: 'd',
+    description: 'If specified, this tool will only look at packages under this directory prefix path.',
+    type: 'string'
+  })
+  .command(
+    'check',
+    'Check that the tsconfig file project references are synced with dependencies.',
+    (v: any) => v,
+    async () => {
+      await run({ mode: 'check' })
+    },
+  )
+  .command(
+    'write',
+    'Write the dependencies to tsconfig file project references.',
+    (v: any) => v,
+    async () => {
+      await run({ mode: 'write' })
+    },
+  )
+  .parse()
+
 
 interface WorkSpaceInfo {
   [key: string]: {
@@ -29,7 +55,7 @@ const stringifyTSConfig = async (
   })
 }
 
-const run = async ({ mode }: { mode: 'check' | 'write' }) => {
+async function run({ mode }: { mode: 'check' | 'write' }) {
   const root = await pkgDir(process.cwd())
   if (!root) {
     throw new Error('Could not find workspace root.')
@@ -42,7 +68,9 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     '--json',
   ])
   const workspaceInfo: WorkSpaceInfo = JSON.parse(raw)
-  const packageNames = Object.keys(workspaceInfo)
+  const packageNames = Object.entries(workspaceInfo)
+    .filter(([_, packageInfo]) => !argv.dirPrefix || packageInfo.location.startsWith(argv.dirPrefix))
+    .map(([packageName]) => packageName);
 
   const getPackageInfo = async (name: string) => {
     const info = workspaceInfo[name]
@@ -78,7 +106,13 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
       const tsConfigString = await fs.readFile(tsConfigPath, {
         encoding: 'utf8',
       })
-      const tsConfig = JSON.parse(tsConfigString)
+      let tsConfig;
+      try {
+        tsConfig = jsonParse(tsConfigString)
+      } catch (e) {
+        console.log('Could not parse tsconfig file:', tsConfigPath);
+        throw e;
+      }
       const tsConfigTarget = {
         ...tsConfig,
         references: info.workspaceDependencies
@@ -120,7 +154,7 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
   await Promise.all(
     packageNames.map(async (name) => {
       const i = await processPackage(name)
-      infoAboutPackages.push(i)
+      infoAboutPackages.push({name, ...i})
     }),
   )
 
@@ -144,12 +178,10 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     rootTSConfigString === rootTSConfigTargetString
 
   if (mode === 'check') {
-    if (
-      infoAboutPackages.some((v) => v.wasOutOfSync) ||
-      !rootTSConfigMatchesTarget
-    ) {
+    const outOfSyncPackages = infoAboutPackages.filter((v) => v.wasOutOfSync);
+    if (outOfSyncPackages.length || !rootTSConfigMatchesTarget) {
       console.error(
-        'Project references are not in sync with dependencies.\nYou can run "yarn yarn-workspaces-to-typescript-project-references write" to fix them.',
+        `Project references are not in sync with dependencies:\n${outOfSyncPackages.map(pkg => `\t* ${pkg.name}`).join('\n')}\nYou can run "yarn yarn-workspaces-to-typescript-project-references write" to fix them.`,
       )
       process.exit(1)
     }
@@ -167,22 +199,3 @@ const run = async ({ mode }: { mode: 'check' | 'write' }) => {
     }
   }
 }
-
-yargs
-  .command(
-    'check',
-    'Check that the tsconfig file project references are synced with dependencies.',
-    (v: any) => v,
-    async () => {
-      await run({ mode: 'check' })
-    },
-  )
-  .command(
-    'write',
-    'Write the dependencies to tsconfig file project references.',
-    (v: any) => v,
-    async () => {
-      await run({ mode: 'write' })
-    },
-  )
-  .parse()
